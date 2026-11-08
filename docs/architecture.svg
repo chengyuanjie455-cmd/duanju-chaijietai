@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="930" viewBox="0 0 1200 930" role="img" aria-label="短剧拆解台 架构图">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .t { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
+      .band-tag { font-size: 12.5px; font-weight: 700; }
+      .band-sub { font-size: 12.5px; }
+      .chip { font-size: 13px; font-weight: 600; }
+      .card-title { font-size: 13px; font-weight: 700; }
+      .card-sub { font-size: 11px; }
+      .step-num { font-size: 10px; font-weight: 700; }
+      .step-name { font-size: 12.5px; font-weight: 700; }
+      .step-script { font-size: 9.5px; }
+      .arrow-label { font-size: 11.5px; }
+      .foot { font-size: 12px; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="930" fill="#ffffff"/>
+  <text class="t" x="40" y="52" font-size="27" font-weight="700" fill="#0f172a">短剧拆解台 · 一图看懂架构</text>
+  <text class="t" x="40" y="78" font-size="13" fill="#64748b">DSH 侧边栏插件（界面）+ 纯 Node 命令行流水线（引擎）｜扫红果榜 → 下载 → 切镜听写 → 逆推 → 拆解报告 → 剧情库</text>
+
+  <!-- ================= Layer 1: UI ================= -->
+  <rect x="40" y="100" width="1120" height="214" rx="16" fill="#eff6ff" stroke="#c7ddfb"/>
+  <rect x="56" y="116" width="88" height="22" rx="11" fill="#2563eb"/>
+  <text class="t band-tag" x="100" y="131" fill="#ffffff" text-anchor="middle">① 界面层</text>
+  <text class="t band-sub" x="156" y="132" fill="#1e3a8a">DSH 侧边栏插件 · client.js（React 单文件 · 七个栏目）</text>
+
+  <!-- 7 chips -->
+  <g>
+    <rect x="56" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="131" y="176" fill="#1e3a8a" text-anchor="middle">扫榜</text>
+    <rect x="217" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="292" y="176" fill="#1e3a8a" text-anchor="middle">视频</text>
+    <rect x="378" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="453" y="176" fill="#1e3a8a" text-anchor="middle">拆解</text>
+    <rect x="539" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="614" y="176" fill="#1e3a8a" text-anchor="middle">知识库</text>
+    <rect x="700" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="775" y="176" fill="#1e3a8a" text-anchor="middle">剧情</text>
+    <rect x="861" y="150" width="151" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="936" y="176" fill="#1e3a8a" text-anchor="middle">摸鱼短剧</text>
+    <rect x="1022" y="150" width="122" height="42" rx="10" fill="#ffffff" stroke="#bfdbfe"/><text class="t chip" x="1083" y="176" fill="#1e3a8a" text-anchor="middle">预测</text>
+  </g>
+
+  <!-- feature cards -->
+  <rect x="56" y="206" width="536" height="92" rx="12" fill="#ffffff" stroke="#c7ddfb"/>
+  <text class="t card-title" x="72" y="232" fill="#0f172a">一键「帮我拆解」</text>
+  <text class="t card-sub" x="72" y="256" fill="#475569">扫榜点按钮 → 后台顺序跑 9 步（下载→切镜→听写→清洗→</text>
+  <text class="t card-sub" x="72" y="276" fill="#475569">逆推→速览→事件→初稿→索引），全程无需手动介入。</text>
+
+  <rect x="608" y="206" width="536" height="92" rx="12" fill="#ffffff" stroke="#c7ddfb"/>
+  <text class="t card-title" x="624" y="232" fill="#0f172a">拆解进度表</text>
+  <text class="t card-sub" x="624" y="256" fill="#475569">实时整体百分比 + 9 行阶段状态（待运行 / 进行中 / 完成 /</text>
+  <text class="t card-sub" x="624" y="276" fill="#475569">失败）+ 每步「已拆 10/12 集」+ 用时，跑完自动刷新。</text>
+
+  <!-- arrow UI <-> Host -->
+  <line x1="120" y1="316" x2="120" y2="342" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="1080" y1="342" x2="1080" y2="316" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <text class="t arrow-label" x="600" y="334" fill="#475569" text-anchor="middle">POST /run 提交任务 ｜ GET /jobs/:id 轮询进度 · 日志　（同源 HTTP /api/drama-lab）</text>
+
+  <!-- ================= Layer 2: Host ================= -->
+  <rect x="40" y="344" width="1120" height="152" rx="16" fill="#f5f3ff" stroke="#d8ccfb"/>
+  <rect x="56" y="360" width="88" height="22" rx="11" fill="#7c3aed"/>
+  <text class="t band-tag" x="100" y="375" fill="#ffffff" text-anchor="middle">② 宿主层</text>
+  <text class="t band-sub" x="156" y="376" fill="#4c1d95">插件 Host · index.js（Node）—— 注册路由、白名单跑脚本、收集日志、解析进度</text>
+
+  <rect x="56" y="392" width="263" height="84" rx="12" fill="#ffffff" stroke="#ddd6fe"/>
+  <text class="t card-title" x="70" y="416" fill="#4c1d95">/api/drama-lab 路由</text>
+  <text class="t card-sub" x="70" y="440" fill="#475569">GET /library /stats /jobs …</text>
+  <text class="t card-sub" x="70" y="458" fill="#475569">POST /run · /jobs/:id/stop</text>
+
+  <rect x="331" y="392" width="263" height="84" rx="12" fill="#ffffff" stroke="#ddd6fe"/>
+  <text class="t card-title" x="345" y="416" fill="#4c1d95">TASKS 白名单（15 个）</text>
+  <text class="t card-sub" x="345" y="440" fill="#475569">只允许表内脚本执行</text>
+  <text class="t card-sub" x="345" y="458" fill="#475569">拒绝任意命令拼接</text>
+
+  <rect x="606" y="392" width="263" height="84" rx="12" fill="#ffffff" stroke="#ddd6fe"/>
+  <text class="t card-title" x="620" y="416" fill="#4c1d95">作业队列 jobs</text>
+  <text class="t card-sub" x="620" y="440" fill="#475569">spawn node bin/*.mjs</text>
+  <text class="t card-sub" x="620" y="458" fill="#475569">按行缓冲 stdout，杀进程组</text>
+
+  <rect x="881" y="392" width="263" height="84" rx="12" fill="#ffffff" stroke="#ddd6fe"/>
+  <text class="t card-title" x="895" y="416" fill="#4c1d95">进度解析 trackBreakdown</text>
+  <text class="t card-sub" x="895" y="440" fill="#475569">9 段状态机 + 集数计数</text>
+  <text class="t card-sub" x="895" y="458" fill="#475569">→ buildBreakdownProgress</text>
+
+  <!-- arrow Host <-> Engine -->
+  <line x1="120" y1="498" x2="120" y2="524" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="1080" y1="524" x2="1080" y2="498" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <text class="t arrow-label" x="600" y="516" fill="#475569" text-anchor="middle">spawn(process.execPath, bin/*.mjs) 真跑 ｜ 子进程 stdout 逐行回流 → trackBreakdown</text>
+
+  <!-- ================= Layer 3: Engine ================= -->
+  <rect x="40" y="526" width="1120" height="232" rx="16" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <rect x="56" y="542" width="88" height="22" rx="11" fill="#059669"/>
+  <text class="t band-tag" x="100" y="557" fill="#ffffff" text-anchor="middle">③ 引擎层</text>
+  <text class="t band-sub" x="156" y="558" fill="#065f46">短剧拆解流水线 · pipeline/bin/*.mjs（纯 Node ESM + ffmpeg + mlx_whisper）</text>
+
+  <!-- 9 steps -->
+  <g>
+    <rect x="56" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="112" y="600" fill="#059669" text-anchor="middle">01</text>
+    <text class="t step-name" x="112" y="620" fill="#065f46" text-anchor="middle">扫榜</text>
+    <text class="t step-script" x="112" y="636" fill="#64748b" text-anchor="middle">scan</text>
+
+    <rect x="177" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="233" y="600" fill="#059669" text-anchor="middle">02</text>
+    <text class="t step-name" x="233" y="620" fill="#065f46" text-anchor="middle">下全集</text>
+    <text class="t step-script" x="233" y="636" fill="#64748b" text-anchor="middle">download</text>
+
+    <rect x="298" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="354" y="600" fill="#059669" text-anchor="middle">03</text>
+    <text class="t step-name" x="354" y="620" fill="#065f46" text-anchor="middle">切镜</text>
+    <text class="t step-script" x="354" y="636" fill="#64748b" text-anchor="middle">decompose</text>
+
+    <rect x="419" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="475" y="600" fill="#059669" text-anchor="middle">04</text>
+    <text class="t step-name" x="475" y="620" fill="#065f46" text-anchor="middle">听写</text>
+    <text class="t step-script" x="475" y="636" fill="#64748b" text-anchor="middle">asr</text>
+
+    <rect x="540" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="596" y="600" fill="#059669" text-anchor="middle">05</text>
+    <text class="t step-name" x="596" y="620" fill="#065f46" text-anchor="middle">清洗</text>
+    <text class="t step-script" x="596" y="636" fill="#64748b" text-anchor="middle">clean-subs</text>
+
+    <rect x="661" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="717" y="600" fill="#059669" text-anchor="middle">06</text>
+    <text class="t step-name" x="717" y="620" fill="#065f46" text-anchor="middle">逆推</text>
+    <text class="t step-script" x="717" y="636" fill="#64748b" text-anchor="middle">structure</text>
+
+    <rect x="782" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="838" y="600" fill="#059669" text-anchor="middle">07</text>
+    <text class="t step-name" x="838" y="620" fill="#065f46" text-anchor="middle">速览</text>
+    <text class="t step-script" x="838" y="636" fill="#64748b" text-anchor="middle">stats</text>
+
+    <rect x="903" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="959" y="600" fill="#059669" text-anchor="middle">08</text>
+    <text class="t step-name" x="959" y="620" fill="#065f46" text-anchor="middle">事件</text>
+    <text class="t step-script" x="959" y="636" fill="#64748b" text-anchor="middle">beats</text>
+
+    <rect x="1024" y="580" width="113" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text class="t step-num" x="1080" y="600" fill="#059669" text-anchor="middle">09</text>
+    <text class="t step-name" x="1080" y="620" fill="#065f46" text-anchor="middle">索引</text>
+    <text class="t step-script" x="1080" y="636" fill="#64748b" text-anchor="middle">index</text>
+  </g>
+  <!-- step arrows -->
+  <g stroke="#94a3b8" stroke-width="1.6" marker-end="url(#arr)">
+    <line x1="170" y1="613" x2="176" y2="613"/>
+    <line x1="291" y1="613" x2="297" y2="613"/>
+    <line x1="412" y1="613" x2="418" y2="613"/>
+    <line x1="533" y1="613" x2="539" y2="613"/>
+    <line x1="654" y1="613" x2="660" y2="613"/>
+    <line x1="775" y1="613" x2="781" y2="613"/>
+    <line x1="896" y1="613" x2="902" y2="613"/>
+    <line x1="1017" y1="613" x2="1023" y2="613"/>
+  </g>
+
+  <text class="t card-sub" x="56" y="676" fill="#065f46">auto-report 出报告结构初稿（再配 prompts/ 精修）→ 拆解报告 · 数据速览 · 事件时间线 · 剧情库卡片 四件套</text>
+  <text class="t card-sub" x="56" y="700" fill="#64748b">其他工具：series-stats 系列总览 · week 近七日趋势 · report-daily/weekly/monthly 日周月报 · run-batch.sh 批量</text>
+
+  <!-- arrow Engine -> Output -->
+  <line x1="600" y1="758" x2="600" y2="780" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <text class="t arrow-label" x="614" y="773" fill="#0369a1">产物落盘</text>
+
+  <!-- ================= Layer 4: Output ================= -->
+  <rect x="40" y="782" width="1120" height="76" rx="14" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="56" y="798" width="76" height="22" rx="11" fill="#0284c7"/>
+  <text class="t band-tag" x="94" y="813" fill="#ffffff" text-anchor="middle">④ 产物</text>
+  <text class="t card-sub" x="150" y="806" fill="#334155">剧库/&lt;剧名&gt;/：raw/*.mp4 · 字幕/*.srt · 拆解/&lt;集&gt;/shots.csv + 关键帧 · 数据速览.md · 事件索引.csv · 拆解报告.md</text>
+  <text class="t card-sub" x="150" y="828" fill="#334155">剧情库卡片.md · 剧本逆推/*.md · index.json —— 全是普通文件，Host 读回 → 界面展示（版权素材勿传播/商用）</text>
+
+  <!-- footer -->
+  <text class="t foot" x="40" y="898" fill="#475569">外部依赖：红果公开接口（openhongguo SDK） · ffmpeg / ffprobe · mlx_whisper + Whisper 模型 · DSH 桌面端</text>
+  <text class="t foot" x="1160" y="898" fill="#94a3b8" text-anchor="end">代码 MIT · 素材版权归原方</text>
+</svg>
