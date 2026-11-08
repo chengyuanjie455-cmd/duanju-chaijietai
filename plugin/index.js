@@ -171,18 +171,171 @@ function filterJobLines(lines) {
   return lines
 }
 
+// 一键拆解的固定阶段（与 bin/breakdown.mjs 里的 label 一一对应）
+const BREAKDOWN_STAGES = ['下载全集', '切镜抽帧', '语音听写', '清洗字幕', '逐镜逆推', '数据速览', '事件索引', '自动初稿', '重建剧库索引']
+
+function newBreakdownStages() {
+  return BREAKDOWN_STAGES.map((label) => ({
+    label,
+    status: 'pending',
+    done: 0,
+    total: 0,
+    detail: '',
+    startedAt: null,
+    endedAt: null,
+  }))
+}
+
+function stageSeconds(stage) {
+  if (!stage.startedAt) return null
+  const end = stage.endedAt ? Date.parse(stage.endedAt) : Date.now()
+  const start = Date.parse(stage.startedAt)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+  return Math.max(0, Math.round((end - start) / 1000))
+}
+
+// 逐行解析 breakdown.mjs 的输出，实时更新每个阶段的状态与进度
+function trackBreakdown(job, line) {
+  const stages = job.stages
+  if (!stages) return
+  line = String(line).trim()
+  if (!line) return
+  const startMatch = line.match(/\[breakdown\]\s*▶\s*(.+?)\s*$/)
+  if (startMatch) {
+    const label = startMatch[1]
+    for (const s of stages) {
+      if (s.status === 'running') { s.status = 'done'; s.endedAt = s.endedAt || new Date().toISOString() }
+    }
+    const stage = stages.find((s) => s.label === label)
+    if (stage && stage.status !== 'done') {
+      stage.status = 'running'
+      stage.startedAt = stage.startedAt || new Date().toISOString()
+    }
+    return
+  }
+  if (/\[breakdown\]\s*失败/.test(line)) {
+    const at = line.indexOf('[breakdown]')
+    const rest = at >= 0 ? line.slice(at) : line
+    const msg = rest.replace(/^\[breakdown\]\s*失败[：:]\s*/, '').trim()
+    const target = stages.find((s) => s.status === 'running')
+      || stages.find((s) => s.status === 'pending' && msg && msg.includes(s.label))
+      || stages.find((s) => s.status === 'pending')
+    if (target) {
+      target.status = 'error'
+      target.detail = msg || target.detail
+      target.endedAt = new Date().toISOString()
+    }
+    job.progressError = msg || '执行失败'
+    return
+  }
+  if (/\[breakdown\]\s*完成/.test(line)) {
+    job.progressFinished = true
+    for (const s of stages) {
+      if (s.status === 'running') s.status = 'done'
+      if (s.status === 'done' && !s.endedAt) s.endedAt = new Date().toISOString()
+    }
+    return
+  }
+
+  const cur = stages.find((s) => s.status === 'running')
+  if (!cur) return
+
+  if (cur.label === '下载全集') {
+    const seriesTotal = line.match(/本次任务\s*(\d+)\s*集/)
+    if (seriesTotal) cur.total = Number(seriesTotal[1])
+    const m = line.match(/\[(\d+)\/(\d+)\]\s*EP/)
+    if (m) {
+      cur.done = Number(m[1])
+      cur.total = Number(m[2]) || cur.total
+      cur.detail = `${cur.done}/${cur.total} 集`
+    }
+    return
+  }
+  if (cur.label === '切镜抽帧') {
+    const tot = line.match(/待拆\s*(\d+)\s*集/)
+    if (tot) cur.total = Number(tot[1])
+    if (/EP\d+\s+\d+(?:\.\d+)?s\s*→\s*\d+\s*镜/.test(line)) {
+      cur.done += 1
+      cur.detail = `已拆 ${cur.done}${cur.total ? ' / ' + cur.total : ''} 集`
+    }
+    return
+  }
+  if (cur.label === '语音听写') {
+    const tot = line.match(/》\s*(\d+)\s*集，模型/)
+    if (tot && !cur.total) cur.total = Number(tot[1])
+    if (/EP\d+\s+[✓✗]/.test(line)) {
+      cur.done += 1
+      cur.detail = `已转写 ${cur.done}${cur.total ? ' / ' + cur.total : ''} 集`
+    }
+    return
+  }
+  if (cur.label === '逐镜逆推') {
+    if (/EP\d+\s*→\s*\d+\s*镜/.test(line)) {
+      cur.done += 1
+      cur.detail = `已逆推 ${cur.done} 集`
+    }
+    return
+  }
+  if (cur.label === '清洗字幕') {
+    const clean = line.replace(/^\S+\s*/, '').trim()
+    if (clean) cur.detail = clean.slice(0, 60)
+    return
+  }
+  if (cur.label === '数据速览' || cur.label === '事件索引' || cur.label === '自动初稿' || cur.label === '重建剧库索引') {
+    const clean = line.replace(/^\S+\s*/, '').trim()
+    if (clean) cur.detail = clean.slice(0, 60)
+  }
+}
+
+function buildBreakdownProgress(job) {
+  const stages = job.stages || []
+  let acc = 0
+  for (const s of stages) {
+    if (s.status === 'done') acc += 1
+    else if (s.status === 'running') acc += s.total > 0 ? Math.max(0.1, Math.min(1, s.done / s.total)) : 0.5
+  }
+  const finished = Boolean(job.progressFinished)
+    || (stages.length > 0 && !job.running && job.code === 0 && stages.every((s) => s.status === 'done'))
+  const percent = stages.length ? Math.round((acc / stages.length) * 100) : 0
+  return {
+    finished,
+    error: job.progressError || null,
+    percent: finished ? 100 : Math.min(99, percent),
+    stages: stages.map((s) => ({
+      label: s.label,
+      status: s.status,
+      done: s.done,
+      total: s.total,
+      detail: s.detail || '',
+      seconds: stageSeconds(s),
+    })),
+  }
+}
+
 function createJobs(config) {
   const jobs = new Map()
   let seq = 0
   const maxLines = Math.max(80, Math.min(4000, Number(config?.maxLogLines) || 400))
 
   function push(job, chunk) {
-    const text = String(chunk)
-    for (const line of text.split(/\r?\n/)) {
+    const text = (job.buffer || '') + String(chunk)
+    const parts = text.split(/\r?\n/)
+    job.buffer = parts.pop() ?? ''
+    for (const line of parts) {
       if (!line.trim()) continue
       job.lines.push(line)
+      if (job.stages) trackBreakdown(job, line)
     }
     if (job.lines.length > maxLines) job.lines.splice(0, job.lines.length - maxLines)
+  }
+
+  // 进程结束时把最后一段没有换行符的残行也吐出来
+  function flush(job) {
+    if (job.buffer && job.buffer.trim()) {
+      job.lines.push(job.buffer)
+      if (job.stages) trackBreakdown(job, job.buffer)
+    }
+    job.buffer = ''
   }
 
   function start(root, task, query) {
@@ -205,6 +358,11 @@ function createJobs(config) {
       code: null,
     }
     jobs.set(id, job)
+    if (task === 'breakdown') {
+      job.stages = newBreakdownStages()
+      job.progressError = null
+      job.progressFinished = false
+    }
     const env = { ...process.env }
     delete env.ALL_PROXY
     delete env.all_proxy
@@ -226,6 +384,7 @@ function createJobs(config) {
     child.stderr?.on('data', (buf) => push(job, buf))
     child.on('error', (error) => push(job, `error: ${error?.message ?? error}`))
     child.on('close', (code) => {
+      flush(job)
       job.running = false
       job.code = code
       job.endedAt = new Date().toISOString()
@@ -782,6 +941,7 @@ function forecast(corpus, plan) {
       startedAt: job.startedAt,
       endedAt: job.endedAt,
       lines: filterJobLines(job.lines),
+      progress: job.stages ? buildBreakdownProgress(job) : null,
     })
   }
 

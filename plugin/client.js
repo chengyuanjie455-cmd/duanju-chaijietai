@@ -437,7 +437,55 @@ table.dl-t td.num{text-align:right;font-variant-numeric:tabular-nums}
     }
 
     // ---------- 扫榜 ----------
-    function RankingView({ dramas, onOpenDrama }) {
+    function BreakdownProgress({ job, onClose }) {
+      if (!job) return null
+      const progress = job.progress
+      const stages = progress?.stages ?? []
+      const percent = progress?.percent ?? 0
+      const meta = {
+        pending: { icon: '⏸', text: '待运行', color: 'inherit', dim: 0.5 },
+        running: { icon: '⏳', text: '进行中', color: '#4e7fff' },
+        done: { icon: '✅', text: '完成', color: '#1a9e57' },
+        error: { icon: '❌', text: '失败', color: '#d64545' },
+      }
+      const fmtSec = (sec) => (sec == null ? '—' : sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}分${sec % 60}秒`)
+      const stateText = progress?.finished ? '已完成' : progress?.error ? '已中断' : '进行中…'
+      return h('div', { className: 'dl-card' },
+        h('h3', null,
+          `拆解进度 · ${job.title || ''}`,
+          h('span', { className: 'n' }, stateText),
+          h('div', { className: 'dl-grow' }),
+          h('span', { className: 'n' }, `${percent}%`),
+          h('button', { className: 'dl-btn', onClick: onClose, style: { marginLeft: 8 } }, '收起'),
+        ),
+        h('div', { style: { height: 8, borderRadius: 999, background: 'rgba(127,127,127,.18)', overflow: 'hidden', margin: '4px 0 10px' } },
+          h('div', { style: { height: '100%', width: `${percent}%`, background: progress?.error ? '#d64545' : 'linear-gradient(90deg,#4e7fff,#1a9e57)', transition: 'width .4s ease' } }),
+        ),
+        progress?.error ? h('div', { className: 'dl-note', style: { color: '#d64545' } }, `中断：${progress.error}`) : null,
+        stages.length ? h('table', { className: 'dl-t' },
+          h('thead', null, h('tr', null,
+            h('th', { style: { width: 30 } }, '#'),
+            h('th', null, '步骤'),
+            h('th', { style: { width: 76 } }, '状态'),
+            h('th', null, '进度'),
+            h('th', { className: 'num', style: { width: 72 } }, '用时'),
+          )),
+          h('tbody', null, stages.map((s, i) => {
+            const m = meta[s.status] || meta.pending
+            return h('tr', { key: s.label, style: s.status === 'running' ? { color: '#4e7fff', fontWeight: 600 } : null },
+              h('td', { className: 'num' }, i + 1),
+              h('td', null, s.label),
+              h('td', { style: { color: m.color, opacity: m.dim ?? 1, whiteSpace: 'nowrap' } }, `${m.icon} ${m.text}`),
+              h('td', { style: { fontSize: 11.5, opacity: 0.85 } }, s.detail || (s.status === 'pending' ? '—' : '')),
+              h('td', { className: 'num' }, fmtSec(s.seconds)),
+            )
+          })),
+        ) : h('p', { className: 'dl-note' }, '已提交，正在获取进度…'),
+        h('p', { className: 'dl-note' }, '下载全集 → 切镜抽帧 → 语音听写 → 清洗字幕 → 逐镜逆推 → 数据速览 → 事件索引 → 自动初稿 → 重建剧库索引。跑完这一栏就能「看拆解」。'),
+      )
+    }
+
+    function RankingView({ dramas, onOpenDrama, onBreakdown }) {
       const [dates, setDates] = useState([])
       const [date, setDate] = useState('')
       const [data, setData] = useState(null)
@@ -501,13 +549,13 @@ table.dl-t td.num{text-align:right;font-variant-numeric:tabular-nums}
             const timer = setInterval(() => {
               getJson(`/jobs/${encodeURIComponent(id)}`)
                 .then((job) => {
-                  if (job.exitCode === null || job.exitCode === undefined) return
+                  if (job.running) return
                   clearInterval(timer)
-                  if (job.exitCode === 0) {
+                  if (job.code === 0) {
                     setNote(`${label}：完成${after ? '，已刷新' : ''}`)
                     if (after) after()
                   } else {
-                    setNote(`${label}：失败（退出码 ${job.exitCode}），顶部「运行」看日志`)
+                    setNote(`${label}：失败（退出码 ${job.code}），顶部「运行流水线」看日志`)
                   }
                 })
                 .catch(() => { clearInterval(timer) })
@@ -638,10 +686,10 @@ table.dl-t td.num{text-align:right;font-variant-numeric:tabular-nums}
                         className: 'dl-btn' + (hit ? '' : ' on'),
                         style: { padding: '1px 7px', fontSize: 11 },
                         title: hit ? '重新跑一遍全流程（会覆盖该剧产物）' : '自动下载并拆解这部剧',
-                        onClick: () => run('breakdown', {
+                        onClick: () => onBreakdown({
                           seriesId: String(item.series_id ?? ''),
                           dramaName: String(item.title ?? ''),
-                        }, hit ? `重跑《${hit.name}》` : `拆解《${item.title}》`),
+                        }, hit ? `重跑《${hit.name}》` : `拆解《${item.title}》`, String(item.title ?? '')),
                       }, hit ? '重跑' : '帮我拆解'),
                     )),
                   )
@@ -1072,15 +1120,52 @@ table.dl-t td.num{text-align:right;font-variant-numeric:tabular-nums}
       const [sheetEp, setSheetEp] = useState(0)
       const [runOpen, setRunOpen] = useState(false)
       const [error, setError] = useState('')
+      const [bd, setBd] = useState(null)
 
-      useEffect(() => {
+      const loadLibrary = () => {
         getJson('/library')
           .then((data) => {
             setLibrary(data)
             if (data.dramas?.length) setDramaName((current) => current || data.dramas[0].name)
           })
           .catch((e) => setError(e.message))
-      }, [])
+      }
+
+      useEffect(() => { loadLibrary() }, [])
+
+      // 一键拆解：提交后轮询 /jobs/:id 的 progress，驱动进度表
+      const startBreakdown = (payload, label, title) => {
+        setError('')
+        postJson('/run', { task: 'breakdown', ...payload })
+          .then((body) => {
+            const id = body.job?.id
+            if (!id) { setError(`${label} 提交失败`); return }
+            setBd({ id, label, title, progress: null, running: true, code: null })
+          })
+          .catch((e) => setError(`${label} 失败：${e.message}`))
+      }
+
+      useEffect(() => {
+        if (!bd?.id) return
+        let alive = true
+        let timer = null
+        const tick = () => {
+          getJson(`/jobs/${encodeURIComponent(bd.id)}`)
+            .then((job) => {
+              if (!alive) return
+              setBd((cur) => (cur && cur.id === bd.id ? { ...cur, progress: job.progress ?? cur.progress, running: job.running, code: job.code } : cur))
+              if (job.running) {
+                timer = setTimeout(tick, 1500)
+              } else {
+                if (job.code === 0) loadLibrary()
+                setError(job.code === 0 ? '' : `${bd.label}：失败（退出码 ${job.code}）`)
+              }
+            })
+            .catch(() => { if (alive) timer = setTimeout(tick, 3000) })
+        }
+        tick()
+        return () => { alive = false; if (timer) clearTimeout(timer) }
+      }, [bd?.id])
 
       const dramas = library?.dramas ?? []
       const drama = dramas.find((d) => d.name === dramaName) ?? dramas[0] ?? null
@@ -1110,8 +1195,9 @@ table.dl-t td.num{text-align:right;font-variant-numeric:tabular-nums}
         )),
         h('div', { className: 'dl-body' },
           h(Err, { message: error }),
+          bd ? h(BreakdownProgress, { job: bd, onClose: () => setBd(null) }) : null,
           runOpen ? h(PipelineDrawer, { library, open: runOpen, onClose: () => setRunOpen(false) }) : null,
-          tab === 'rank' ? h(RankingView, { dramas, onOpenDrama: openDrama }) : null,
+          tab === 'rank' ? h(RankingView, { dramas, onOpenDrama: openDrama, onBreakdown: startBreakdown }) : null,
           tab === 'video' ? h(VideoView, { drama, stats, onPickShot: (ep) => { setSheetEp(ep); setTab('breakdown') } }) : null,
           tab === 'breakdown' ? h(BreakdownView, { drama, stats, initialEp: sheetEp }) : null,
           tab === 'knowledge' ? h(KnowledgeView, { dramas, series: library?.series }) : null,
