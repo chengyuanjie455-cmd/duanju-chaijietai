@@ -1,0 +1,34 @@
+# 依赖
+node_modules/
+
+# 运行期产出（首次运行自动创建，不入库）
+pipeline/data/*
+!pipeline/data/.gitkeep
+pipeline/剧库/
+pipeline/reports/
+pipeline/logs/
+pipeline/models/
+export/
+
+# 版权素材 / 大文件
+*.mp4
+*.mov
+*.mkv
+*.m4v
+*.avi
+*.wav
+*.mp3
+*.srt
+*.ass
+*.vtt
+
+# 匿名设备档案 / 密钥
+ohg-*.json
+ohg-profile.json
+.env
+.env.*
+*.local
+
+# 系统
+.DS_Store
+Thumbs.db

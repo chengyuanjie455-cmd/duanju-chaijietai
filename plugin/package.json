@@ -1,0 +1,38 @@
+{
+  "name": "dsh-drama-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "短剧拆解台：红果扫榜 → 全集下载 → 逐镜切分 → 本地听写 → 剧情逆推 → 数据速览 → 剧情库，左侧边栏工作台",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./icon": "./icon.svg",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

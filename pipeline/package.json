@@ -1,0 +1,31 @@
+{
+  "name": "short-drama-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "红果短剧拆解流水线：扫榜 → 下全集 → 拆镜头 → 本地听写 → 逐镜逆推 → 数据速览 → 拆解报告/剧情库。仅供个人学习研究。",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "openhongguo": ">=0.1.0 <0.3.0"
+  },
+  "scripts": {
+    "scan": "node bin/scan.mjs",
+    "download": "node bin/download.mjs",
+    "decompose": "node bin/decompose.mjs",
+    "asr": "node bin/asr.mjs",
+    "structure": "node bin/structure.mjs",
+    "stats": "node bin/stats.mjs",
+    "beats": "node bin/beats.mjs",
+    "series-stats": "node bin/series-stats.mjs",
+    "index": "node bin/index.mjs",
+    "auto-report": "node bin/auto-report.mjs",
+    "breakdown": "node bin/breakdown.mjs",
+    "week": "node bin/week.mjs",
+    "report-daily": "node bin/report-daily.mjs",
+    "report-weekly": "node bin/report-weekly.mjs",
+    "report-monthly": "node bin/report-monthly.mjs"
+  }
+}

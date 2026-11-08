@@ -1,0 +1,12 @@
+# DSH 插件注入配置（dsh-drama-lab）
+#
+# pipelineRoot：指向「短剧拆解流水线」的实际路径，即你克隆本仓库后的 pipeline/ 目录。
+#   把下面的占位路径换成你自己的绝对路径，例如：
+#     pipelineRoot: /Users/you/Documents/short-drama-lab/pipeline
+#   也可以用环境变量覆盖（优先级高于本文件）：export DSH_DRAMA_LAB_ROOT=/path/to/pipeline
+- insert:
+    - id: drama-lab
+      name: dsh-drama-lab
+      config:
+        pipelineRoot: /ABSOLUTE/PATH/TO/short-drama-lab/pipeline
+        maxLogLines: 400

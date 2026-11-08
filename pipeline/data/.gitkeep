@@ -1,0 +1,2 @@
+# 该目录用于存放运行期数据（榜单 JSON、设备档案等），首次运行会自动写入。
+# 目录本身保留，方便 openhongguo 在这里落匿名设备档案 data/ohg-profile.json。
