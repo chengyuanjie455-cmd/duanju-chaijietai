@@ -277,13 +277,13 @@ function trackBreakdown(job, line) {
     return
   }
   if (cur.label === '清洗字幕') {
-    const clean = line.replace(/^\S+\s*/, '').trim()
-    if (clean) cur.detail = clean.slice(0, 60)
+    const clean = line.replace(/^\S+\s*/, '').replace(/^\[[^\]]+\]\s*/, '').trim()
+    if (clean) cur.detail = clean.slice(0, 48)
     return
   }
   if (cur.label === '数据速览' || cur.label === '事件索引' || cur.label === '自动初稿' || cur.label === '重建剧库索引') {
-    const clean = line.replace(/^\S+\s*/, '').trim()
-    if (clean) cur.detail = clean.slice(0, 60)
+    const clean = line.replace(/^\S+\s*/, '').replace(/^\[[^\]]+\]\s*/, '').trim()
+    if (clean) cur.detail = clean.slice(0, 48)
   }
 }
 
